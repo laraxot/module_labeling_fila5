@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'navigation_sort' => 5,
     'name' => 'Labeling',
     'description' => 'Etichette, identificatori e stampanti per i modelli Labelable',
     'icon' => 'heroicon-o-qr-code',

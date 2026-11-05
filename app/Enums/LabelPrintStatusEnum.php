@@ -14,8 +14,8 @@ use Modules\Xot\Traits\EnumTrait;
  *
  * - queued: snapshot salvato, consegna non ancora tentata;
  * - sent: inviato alla stampante (ZPL via TCP);
- * - rendered: prodotto ma non inviato (PDF su disco, oppure ZPL senza stampante);
- * - failed: consegna fallita, il motivo e' in `error`.
+ * - rendered: file PDF prodotto su disco (`output_path`), da scaricare;
+ * - failed: render o consegna falliti, oppure nessuna stampante per un template ZPL; il motivo e' in `error`.
  */
 enum LabelPrintStatusEnum: string implements HasColor, HasIcon, HasLabel
 {

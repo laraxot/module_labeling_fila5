@@ -5,8 +5,10 @@ declare(strict_types=1);
 use Modules\Labeling\Actions\PrintLabelAction;
 use Modules\Labeling\Enums\LabelPrintStatusEnum;
 use Modules\Labeling\Exceptions\IncompatiblePrinterException;
+use Modules\Labeling\Exceptions\LabelRenderException;
 use Modules\Labeling\Exceptions\LabelTemplateNotFoundException;
 use Modules\Labeling\Exceptions\PrinterConnectionException;
+use Modules\Labeling\Exceptions\PrinterNotConfiguredException;
 use Modules\Labeling\Models\LabelPrint;
 use Modules\Labeling\Models\LabelTemplate;
 use Modules\Labeling\Models\Printer;
@@ -32,18 +34,41 @@ beforeEach(function (): void {
 });
 
 describe('PrintLabelAction', function (): void {
-    test('renders a ZPL label without printer and stores the snapshot', function (): void {
+    test('fails visibly when a ZPL label has no printer, keeping the snapshot and the reason', function (): void {
         $item = LabelableItem::createWith('SU-P-0001', 'Big bag');
         $template = LabelTemplate::factory()->forType(LabelableItem::class)->withContent('^XA^FD{{ code }}^FS^XZ')->create();
 
-        $print = app(PrintLabelAction::class)->execute($item, copies: 2);
+        try {
+            app(PrintLabelAction::class)->execute($item, copies: 2);
+            Assert::fail('PrinterNotConfiguredException expected');
+        } catch (PrinterNotConfiguredException $e) {
+            Assert::assertStringContainsString($template->code, $e->getMessage());
+        }
 
-        Assert::assertSame(LabelPrintStatusEnum::RENDERED, $print->status);
+        $print = $item->labelPrints()->sole();
+        Assert::assertInstanceOf(LabelPrint::class, $print);
+        Assert::assertSame(LabelPrintStatusEnum::FAILED, $print->status);
         Assert::assertSame('^XA^FDSU-P-0001^FS^XZ', $print->rendered);
         Assert::assertSame($template->id, $print->label_template_id);
         Assert::assertSame(2, $print->copies);
-        Assert::assertNotNull($print->printed_at);
-        Assert::assertSame(1, $item->labelPrints()->count());
+        Assert::assertNotNull($print->error);
+        Assert::assertNull($print->printed_at);
+    });
+
+    test('records a failed print when the template content is not valid', function (): void {
+        $item = LabelableItem::createWith('SU-P-0006');
+        $template = LabelTemplate::factory()->withContent('^XA@foreach ($data as $v)^FD{{ $v }}^FS@endforeach^XZ')->create();
+
+        try {
+            app(PrintLabelAction::class)->execute($item, $template);
+            Assert::fail('LabelRenderException expected');
+        } catch (LabelRenderException) {
+        }
+
+        $print = LabelPrint::query()->where('labelable_id', $item->id)->sole();
+        Assert::assertSame(LabelPrintStatusEnum::FAILED, $print->status);
+        Assert::assertSame('', $print->rendered);
+        Assert::assertNotNull($print->error);
     });
 
     test('marks the print failed and rethrows when the printer is unreachable', function (): void {

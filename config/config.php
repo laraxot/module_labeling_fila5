@@ -21,8 +21,8 @@ return [
 
     /*
      * Codice della stampante usata quando PrintLabelAction riceve $printer = null, per formato
-     * del template. Senza stampante un template ZPL resta "rendered" (snapshot salvato, nulla
-     * inviato); un template PDF produce comunque il file.
+     * del template. Senza stampante un template ZPL fallisce (stampa `failed` con il motivo, errore
+     * notificato all'operatore); un template PDF produce comunque il file.
      */
     'default_printers' => [
         'zpl' => env('LABELING_DEFAULT_ZPL_PRINTER'),

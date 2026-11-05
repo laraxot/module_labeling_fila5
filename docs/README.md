@@ -96,8 +96,10 @@ Il seeder installa due template generici 100×50 mm (ZPL e PDF) con `{{ line_1 }
 3. Se c'è una stampante, il suo driver consegna l'etichetta:
    - `ZplTcpPrinterDriver` usa un socket TCP raw (timeout da config) e ripete il job per il numero di copie. Lo stato diventa `sent`.
    - `PdfDownloadPrinterDriver` usa Html2Pdf con il formato del template in mm e una pagina per copia, e salva il file sul disco `labeling.pdf.disk`. Lo stato diventa `rendered` e il path va in `output_path`.
-4. Senza stampante, un template PDF produce comunque il file, mentre un template ZPL resta `rendered`.
-5. Un errore di consegna salva la stampa come `failed` con il motivo in `error` e rilancia l'eccezione di dominio (`app/Exceptions`).
+4. Senza stampante un template PDF produce comunque il file. Un template ZPL senza stampante **fallisce**: `PrinterNotConfiguredException`, stampa `failed` con il motivo. Prima restava `rendered` in silenzio e l'operatore leggeva "etichetta in stampa" senza che uscisse nulla.
+5. Ogni errore dopo la scelta del template (template non valido, nessuna stampante, stampante irraggiungibile o non consentita, PDF non scritto) salva la stampa come `failed` con il motivo in `error` e rilancia l'eccezione di dominio (`app/Exceptions`). Le azioni Filament la mostrano come notifica di errore; una stampa in coda finisce fra i job falliti e resta visibile nello storico `LabelPrintResource`.
+
+Stati di `LabelPrint`: `queued` → `sent` (ZPL inviato), `rendered` (PDF pronto da scaricare) oppure `failed`.
 
 ### Scansione
 

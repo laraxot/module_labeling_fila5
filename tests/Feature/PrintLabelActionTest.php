@@ -34,7 +34,7 @@ beforeEach(function (): void {
 describe('PrintLabelAction', function (): void {
     test('renders a ZPL label without printer and stores the snapshot', function (): void {
         $item = LabelableItem::createWith('SU-P-0001', 'Big bag');
-        $template = LabelTemplate::factory()->forType(LabelableItem::class)->withContent('^XA^FD{{ $code }}^FS^XZ')->create();
+        $template = LabelTemplate::factory()->forType(LabelableItem::class)->withContent('^XA^FD{{ code }}^FS^XZ')->create();
 
         $print = app(PrintLabelAction::class)->execute($item, copies: 2);
 
@@ -48,7 +48,7 @@ describe('PrintLabelAction', function (): void {
 
     test('marks the print failed and rethrows when the printer is unreachable', function (): void {
         $item = LabelableItem::createWith('SU-P-0002');
-        $template = LabelTemplate::factory()->withContent('^XA^FD{{ $code }}^FS^XZ')->create();
+        $template = LabelTemplate::factory()->withContent('^XA^FD{{ code }}^FS^XZ')->create();
         $printer = Printer::factory()->at('127.0.0.1', labelingClosedPort())->create();
 
         try {

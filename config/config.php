@@ -41,7 +41,7 @@ return [
         'directory' => 'labeling/prints',
     ],
 
-    // Lato in pixel dell'SVG del QR passato ai template PDF come $qrSvg.
+    // Lato in pixel dell'SVG del QR inserito nei template PDF con {{ qr_svg }}.
     'qr_size_px' => 256,
 
     'max_copies' => 100,

@@ -12,6 +12,13 @@ return [
     'template_not_found' => 'Nessun template di etichetta attivo per :type.',
     'template_inactive' => 'Il template :template non e\' attivo.',
     'render_failed' => 'Errore nel template :template: :reason',
+    'template_content' => [
+        'php_tag' => 'Il template non puo\' contenere codice PHP (<?).',
+        'raw_echo' => 'Il template non puo\' contenere {!! !!}: usare i segnaposto {{ chiave }}.',
+        'directive' => 'Il template non puo\' contenere istruzioni come :directive: solo testo e segnaposto {{ chiave }}.',
+        'unknown_placeholder' => 'Segnaposto non riconosciuto: :placeholder.',
+        'external_resource' => 'Il template PDF non puo\' caricare file o indirizzi (:resource): l\'unica immagine ammessa e\' {{ qr_svg }}.',
+    ],
     'qr_failed' => 'Impossibile generare il QR code: :reason',
     'pdf_failed' => 'Impossibile generare il PDF dell\'etichetta: :reason',
     'identifier_already_assigned' => 'Il valore :value (:type) e\' gia\' assegnato a un altro elemento.',

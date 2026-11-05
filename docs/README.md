@@ -40,7 +40,7 @@ Le due azioni prendono etichetta, tooltip e testi dal lang di Labeling (`print_l
 
 | Modello | Tabella | Note |
 |---|---|---|
-| `LabelTemplate` | `label_templates` | `content` Blade; default per classe (`labelable_type` + `is_default`) o generico (`labelable_type` null) |
+| `LabelTemplate` | `label_templates` | `content` testo con segnaposto `{{ chiave }}` (mai Blade); default per classe (`labelable_type` + `is_default`) o generico (`labelable_type` null) |
 | `Printer` | `printers` | `driver` = `PrinterDriverEnum` (`zpl_tcp`, `pdf_download`) |
 | `Identifier` | `identifiers` | morph `identifiable`; `active_value` = `"{type}:{value}"` solo se attivo, con indice unique |
 | `LabelPrint` | `label_prints` | morph `labelable`; snapshot `rendered`, `status`, `error`, `output_path` (PDF) |
@@ -56,6 +56,7 @@ L'unicità "valore attivo per tipo" la garantisce il database tramite l'indice u
 | `ResolveIdentifiableAction` | `execute(string $scanned): ?Model` |
 | `NormalizeScannedCodeAction` | `execute(string $scanned): NormalizedScanData` (pura) |
 | `RenderLabelAction` | `execute(Model&LabelableContract $model, LabelTemplate $template): string` |
+| `ValidateLabelTemplateContentAction` | `execute(string $content, LabelFormatEnum $format): ?string` (messaggio d'errore tradotto o null) |
 | `PrintLabelAction` (queueable) | `execute(Model&LabelableContract $model, ?LabelTemplate $template = null, ?Printer $printer = null, int $copies = 1): LabelPrint` |
 | `GenerateQrSvgAction` | `execute(string $payload, int $sizePx = 256): string` |
 | `BuildLabelUrlAction` | `execute(string $code): string` → `url('/l/{code}')` |
@@ -67,9 +68,26 @@ Per l'invio asincrono: `app(PrintLabelAction::class)->onQueue()->execute($unit)`
 
 ### Template
 
-Sono Blade e ricevono queste variabili: `$code`, `$url` (payload del QR), `$data` (`getLabelData()`), `$widthMm`, `$heightMm`, `$dpi`, `$widthDots`, `$heightDots`. I PDF ricevono anche `$qrSvg`, da stampare con `{!! $qrSvg !!}`.
+Il contenuto di un template si modifica dal pannello, quindi **non è mai codice**: è testo ZPL o HTML con segnaposto chiusi `{{ chiave }}`, sostituiti da `RenderLabelAction` con una sola passata (`preg_replace_callback`). Niente Blade, niente `@if`/`@foreach`, niente `{!! !!}`: prima eravamo esposti a esecuzione di codice sul server (audit di sicurezza C1).
 
-Nei template ZPL `{{ }}` stampa senza escape HTML. I caratteri di comando `^` e `~` presenti nei dati del modello vengono sostituiti con uno spazio. Il QR in ZPL si stampa con `^BQN,2,6^FDQA,{{ $url }}^FS`. Il seeder installa due template generici 100×50 mm (ZPL e PDF).
+| Segnaposto | Valore |
+|---|---|
+| `{{ code }}` | `getLabelCode()` |
+| `{{ url }}` | payload del QR, `APP_URL/l/{code}` |
+| `{{ width_mm }}`, `{{ height_mm }}`, `{{ dpi }}` | dimensioni e risoluzione del template |
+| `{{ width_dots }}`, `{{ height_dots }}` | dimensioni in punti stampante |
+| `{{ data.<chiave> }}` | un valore di `getLabelData()`; vuoto se il modello non ha quella chiave |
+| `{{ line_1 }}` … `{{ line_N }}` | i valori di `getLabelData()` nell'ordine (template generici) |
+| `{{ qr_svg }}` | solo PDF: SVG del QR, inserito senza escape |
+
+Regole (`ValidateLabelTemplateContentAction`, usata dal form e prima di ogni render):
+- rifiutati `<?`, `{!! !!}`, le direttive (`@php`, `@foreach`, …; un'email come `info@impianto.it` va bene) e ogni `{{ … }}` che non sia una chiave della tabella;
+- nei PDF rifiutati `<img>`, `<link>`, `<script>`, `<iframe>`, `src=`, `href=`, `url(`: Html2Pdf caricherebbe file locali o URL dal server. L'unica immagine è `{{ qr_svg }}`;
+- un template non valido già salvato fa fallire la stampa con il motivo (`LabelRenderException`), non stampa testo a caso.
+
+Escape: nei PDF ogni valore passa da `htmlspecialchars`; nei ZPL i valori restano come sono (un `&` resta `&`) ma `^` e `~` diventano spazi, così un dato non inietta comandi nella stampante. Un valore che contiene `{{ x }}` resta testo. Il QR in ZPL si stampa con `^BQN,2,6^FDQA,{{ url }}^FS`.
+
+Il seeder installa due template generici 100×50 mm (ZPL e PDF) con `{{ line_1 }}`…`{{ line_4 }}`; rieseguirlo (`updateOrCreate`) riscrive i default salvati con la vecchia sintassi Blade. I template personalizzati con Blade vanno riscritti a mano: finché non lo sono la stampa fallisce con il segnaposto non riconosciuto.
 
 ### Stampa
 

@@ -16,7 +16,7 @@ return [
         'content' => [
             'label' => 'Content',
             'placeholder' => '^XA ... ^XZ',
-            'helper_text' => 'Blade. Variables: $code, $url, $data, $widthMm, $heightMm, $dpi, $widthDots, $heightDots; PDFs also get $qrSvg (use {!! $qrSvg !!}).',
+            'helper_text' => 'ZPL or HTML text with {{ key }} placeholders, no instructions. Keys: {{ code }}, {{ url }} (QR payload), {{ width_mm }}, {{ height_mm }}, {{ dpi }}, {{ width_dots }}, {{ height_dots }}, {{ data.field_name }} (one value of the item), {{ line_1 }}...{{ line_N }} (the values in order); PDF only {{ qr_svg }} (QR image). PDFs cannot use external images, links or files.',
         ],
     ],
 ];

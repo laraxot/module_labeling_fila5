@@ -11,33 +11,40 @@ use Modules\Labeling\Models\LabelTemplate;
 /**
  * Due template generici di default (`labelable_type` null): ZPL 100x50 mm per stampanti termiche
  * e PDF 100x50 mm per stampa da ufficio. I moduli consumer aggiungono i propri per classe.
+ *
+ * I template sono testo con segnaposto `{{ chiave }}` ({@see \Modules\Labeling\Actions\RenderLabelAction}):
+ * nessuna logica. Le prime quattro righe di dati sono `line_1` ... `line_4` (i valori di `getLabelData()`
+ * in ordine), cosi' lo stesso template va bene per ogni modello. `updateOrCreate` riscrive anche i
+ * template di default salvati con la vecchia sintassi Blade.
  */
 class LabelTemplateSeeder extends Seeder
 {
-    /** QR con l'URL `/l/{code}` a sinistra, codice e prime righe di `$data` a destra. */
-    public const ZPL_DEFAULT = <<<'ZPL'
+    /** QR con l'URL `/l/{code}` a sinistra, codice e prime quattro righe di dati a destra. */
+    public const string ZPL_DEFAULT = <<<'ZPL'
 ^XA
 ^CI28
-^PW{{ $widthDots }}
-^LL{{ $heightDots }}
-^FO24,24^BQN,2,6^FDQA,{{ $url }}^FS
-^FO300,40^A0N,44,44^FD{{ $code }}^FS
-@foreach (array_slice($data, 0, 4, true) as $key => $value)
-^FO300,{{ 110 + $loop->index * 44 }}^A0N,30,30^FD{{ $value }}^FS
-@endforeach
+^PW{{ width_dots }}
+^LL{{ height_dots }}
+^FO24,24^BQN,2,6^FDQA,{{ url }}^FS
+^FO300,40^A0N,44,44^FD{{ code }}^FS
+^FO300,110^A0N,30,30^FD{{ line_1 }}^FS
+^FO300,154^A0N,30,30^FD{{ line_2 }}^FS
+^FO300,198^A0N,30,30^FD{{ line_3 }}^FS
+^FO300,242^A0N,30,30^FD{{ line_4 }}^FS
 ^XZ
 ZPL;
 
-    public const PDF_DEFAULT = <<<'HTML'
+    public const string PDF_DEFAULT = <<<'HTML'
 <page backtop="3mm" backbottom="3mm" backleft="3mm" backright="3mm">
 <table style="width: 100%;">
     <tr>
-        <td style="width: 40%;">{!! $qrSvg !!}</td>
+        <td style="width: 40%;">{{ qr_svg }}</td>
         <td style="width: 60%; vertical-align: top;">
-            <div style="font-size: 16pt; font-weight: bold;">{{ $code }}</div>
-            @foreach (array_slice($data, 0, 4, true) as $key => $value)
-                <div style="font-size: 9pt;">{{ $value }}</div>
-            @endforeach
+            <div style="font-size: 16pt; font-weight: bold;">{{ code }}</div>
+            <div style="font-size: 9pt;">{{ line_1 }}</div>
+            <div style="font-size: 9pt;">{{ line_2 }}</div>
+            <div style="font-size: 9pt;">{{ line_3 }}</div>
+            <div style="font-size: 9pt;">{{ line_4 }}</div>
         </td>
     </tr>
 </table>

@@ -13,9 +13,9 @@ use Modules\Labeling\Database\Factories\LabelTemplateFactory;
 use Modules\Labeling\Enums\LabelFormatEnum;
 
 /**
- * Template di etichetta. `content` e' Blade: ZPL testuale o HTML (PDF). Variabili disponibili:
- * `$code`, `$url`, `$data`, `$qrSvg` (solo PDF), `$widthMm`, `$heightMm`, `$dpi`,
- * `$widthDots`, `$heightDots`.
+ * Template di etichetta. `content` e' testo ZPL o HTML (PDF) con segnaposto chiusi `{{ chiave }}`,
+ * mai compilato ne' eseguito: chiavi e regole in {@see \Modules\Labeling\Actions\RenderLabelAction}
+ * e {@see \Modules\Labeling\Actions\ValidateLabelTemplateContentAction}.
  *
  * @property int $id
  * @property string $code

@@ -14,6 +14,15 @@ class LabelRenderException extends LabelingException
         ]), 0, $previous);
     }
 
+    /** Contenuto del template non ammesso ({@see \Modules\Labeling\Actions\ValidateLabelTemplateContentAction}). */
+    public static function invalidContent(string $templateCode, string $reason): self
+    {
+        return new self((string) __('labeling::exceptions.render_failed', [
+            'template' => $templateCode,
+            'reason' => $reason,
+        ]));
+    }
+
     public static function qr(\Throwable $previous): self
     {
         return new self((string) __('labeling::exceptions.qr_failed', [

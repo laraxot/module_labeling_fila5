@@ -12,6 +12,13 @@ return [
     'template_not_found' => 'No active label template for :type.',
     'template_inactive' => 'Template :template is not active.',
     'render_failed' => 'Error in template :template: :reason',
+    'template_content' => [
+        'php_tag' => 'The template cannot contain PHP code (<?).',
+        'raw_echo' => 'The template cannot contain {!! !!}: use {{ key }} placeholders.',
+        'directive' => 'The template cannot contain instructions such as :directive: plain text and {{ key }} placeholders only.',
+        'unknown_placeholder' => 'Unknown placeholder: :placeholder.',
+        'external_resource' => 'A PDF template cannot load files or addresses (:resource): the only image allowed is {{ qr_svg }}.',
+    ],
     'qr_failed' => 'Unable to generate the QR code: :reason',
     'pdf_failed' => 'Unable to generate the label PDF: :reason',
     'identifier_already_assigned' => 'Value :value (:type) is already assigned to another item.',

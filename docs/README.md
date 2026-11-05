@@ -62,6 +62,7 @@ L'unicità "valore attivo per tipo" la garantisce il database tramite l'indice u
 | `BuildLabelUrlAction` | `execute(string $code): string` → `url('/l/{code}')` |
 | `ResolveLabelTemplateAction` | `execute(Model&LabelableContract $model): LabelTemplate` |
 | `ResolveDefaultPrinterAction` | `execute(LabelFormatEnum $format): ?Printer` |
+| `EnsurePrinterAddressAllowedAction` | `execute(?string $host, int $port): string` (IP a cui collegarsi; form stampante e driver ZPL) |
 | `GetLabelableResourceUrlAction` | `execute(Model $model): ?string` (pagina view/edit Filament, cercata in tutti i pannelli) |
 
 Per l'invio asincrono: `app(PrintLabelAction::class)->onQueue()->execute($unit)`.
@@ -94,7 +95,7 @@ Il seeder installa due template generici 100×50 mm (ZPL e PDF) con `{{ line_1 }
 1. Il template è quello passato, altrimenti il default della classe, altrimenti il default generico.
 2. La stampante è quella passata, altrimenti `config('labeling.default_printers.{zpl|pdf}')`. Deve essere attiva e compatibile con il formato del template.
 3. Se c'è una stampante, il suo driver consegna l'etichetta:
-   - `ZplTcpPrinterDriver` usa un socket TCP raw (timeout da config) e ripete il job per il numero di copie. Lo stato diventa `sent`.
+   - `ZplTcpPrinterDriver` controlla l'indirizzo con `EnsurePrinterAddressAllowedAction`, usa un socket TCP raw verso l'IP controllato (timeout da config) e ripete il job per il numero di copie. Lo stato diventa `sent`.
    - `PdfDownloadPrinterDriver` usa Html2Pdf con il formato del template in mm e una pagina per copia, e salva il file sul disco `labeling.pdf.disk`. Lo stato diventa `rendered` e il path va in `output_path`.
 4. Senza stampante un template PDF produce comunque il file. Un template ZPL senza stampante **fallisce**: `PrinterNotConfiguredException`, stampa `failed` con il motivo. Prima restava `rendered` in silenzio e l'operatore leggeva "etichetta in stampa" senza che uscisse nulla.
 5. Ogni errore dopo la scelta del template (template non valido, nessuna stampante, stampante irraggiungibile o non consentita, PDF non scritto) salva la stampa come `failed` con il motivo in `error` e rilancia l'eccezione di dominio (`app/Exceptions`). Le azioni Filament la mostrano come notifica di errore; una stampa in coda finisce fra i job falliti e resta visibile nello storico `LabelPrintResource`.
@@ -127,6 +128,8 @@ Le etichette arrivano dai file lang per classe: `{model}.php`, `{model}_form.php
 - `labelables`: le classi proposte nei template.
 - `default_printers.zpl|pdf`: il codice della stampante di default (env `LABELING_DEFAULT_ZPL_PRINTER`, `LABELING_DEFAULT_PDF_PRINTER`).
 - `zpl_tcp.connect_timeout|write_timeout`: i timeout del socket verso le stampanti ZPL.
+- `allowed_printer_hosts` (env `LABELING_ALLOWED_PRINTER_HOSTS`, separati da virgola): indirizzi a cui il server può collegarsi per stampare. Vuota = solo IP privati di LAN (10/8, 172.16/12, 192.168/16, fc00::/7) e hostname che si risolvono lì. Valorizzata = solo IP, CIDR, hostname esatti o `*.dominio` elencati. Metadata cloud (169.254.169.254, 100.100.100.200, fd00:ec2::254), link-local, 0.0.0.0/8 e multicast sono sempre vietati.
+- `printer_ports.min|max`: intervallo di porte ammesse (default 1024–65535: niente SSH, SMTP, HTTP…).
 - `pdf.disk|directory`: dove salvare i PDF.
 - `qr_size_px`: il lato in pixel del QR nei PDF.
 - `max_copies`: il numero massimo di copie per stampa.

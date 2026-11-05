@@ -3,7 +3,14 @@
 declare(strict_types=1);
 
 return [
-    'printer_unreachable' => 'Printer :printer is unreachable at :host::port (:reason).',
+    'printer_unreachable' => 'Printer :printer is unreachable at :host::port.',
+    'printer_address' => [
+        'missing_host' => 'Enter the printer IP address or network name.',
+        'invalid_host' => ':host is not a valid IP address or network name.',
+        'unresolvable' => 'Network name :host does not resolve to an IPv4 address.',
+        'not_allowed' => 'Address :host is not allowed for a printer: only local network addresses or those listed in labeling.allowed_printer_hosts are allowed.',
+        'port' => 'Port :port is not allowed: use a port between :min and :max.',
+    ],
     'printer_missing_host' => 'Printer :printer has no network address.',
     'printer_write_failed' => 'Sending to printer :printer was interrupted.',
     'printer_timeout' => 'Printer :printer did not accept the data within :seconds seconds.',

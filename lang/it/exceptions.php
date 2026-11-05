@@ -3,7 +3,14 @@
 declare(strict_types=1);
 
 return [
-    'printer_unreachable' => 'Stampante :printer non raggiungibile su :host::port (:reason).',
+    'printer_unreachable' => 'Stampante :printer non raggiungibile su :host::port.',
+    'printer_address' => [
+        'missing_host' => 'Indicare l\'indirizzo IP o il nome di rete della stampante.',
+        'invalid_host' => ':host non e\' un indirizzo IP o un nome di rete valido.',
+        'unresolvable' => 'Il nome di rete :host non si risolve in un indirizzo IPv4.',
+        'not_allowed' => 'L\'indirizzo :host non e\' consentito per una stampante: sono ammessi solo indirizzi della rete locale o quelli elencati in labeling.allowed_printer_hosts.',
+        'port' => 'Porta :port non consentita: usare una porta fra :min e :max.',
+    ],
     'printer_missing_host' => 'La stampante :printer non ha un indirizzo di rete configurato.',
     'printer_write_failed' => 'Invio alla stampante :printer interrotto.',
     'printer_timeout' => 'La stampante :printer non ha accettato i dati entro :seconds secondi.',

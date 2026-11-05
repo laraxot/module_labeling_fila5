@@ -7,6 +7,7 @@ use Modules\Labeling\Enums\LabelPrintStatusEnum;
 use Modules\Labeling\Exceptions\IncompatiblePrinterException;
 use Modules\Labeling\Exceptions\LabelRenderException;
 use Modules\Labeling\Exceptions\LabelTemplateNotFoundException;
+use Modules\Labeling\Exceptions\PrinterAddressNotAllowedException;
 use Modules\Labeling\Exceptions\PrinterConnectionException;
 use Modules\Labeling\Exceptions\PrinterNotConfiguredException;
 use Modules\Labeling\Models\LabelPrint;
@@ -30,7 +31,10 @@ function labelingClosedPort(): int
 }
 
 beforeEach(function (): void {
-    config(['labeling.default_printers' => ['zpl' => null, 'pdf' => null]]);
+    config([
+        'labeling.default_printers' => ['zpl' => null, 'pdf' => null],
+        'labeling.allowed_printer_hosts' => [],
+    ]);
 });
 
 describe('PrintLabelAction', function (): void {
@@ -72,6 +76,7 @@ describe('PrintLabelAction', function (): void {
     });
 
     test('marks the print failed and rethrows when the printer is unreachable', function (): void {
+        config(['labeling.allowed_printer_hosts' => ['127.0.0.1']]);
         $item = LabelableItem::createWith('SU-P-0002');
         $template = LabelTemplate::factory()->withContent('^XA^FD{{ code }}^FS^XZ')->create();
         $printer = Printer::factory()->at('127.0.0.1', labelingClosedPort())->create();
@@ -79,7 +84,8 @@ describe('PrintLabelAction', function (): void {
         try {
             app(PrintLabelAction::class)->execute($item, $template, $printer);
             Assert::fail('PrinterConnectionException expected');
-        } catch (PrinterConnectionException) {
+        } catch (PrinterConnectionException $e) {
+            Assert::assertStringNotContainsStringIgnoringCase('refused', $e->getMessage());
         }
 
         $print = LabelPrint::query()->where('labelable_id', $item->id)->sole();
@@ -87,6 +93,20 @@ describe('PrintLabelAction', function (): void {
         Assert::assertNotNull($print->error);
         Assert::assertNull($print->printed_at);
     });
+
+    test('never opens a socket towards loopback or cloud metadata addresses', function (string $host): void {
+        $item = LabelableItem::createWith('SU-P-0007');
+        $template = LabelTemplate::factory()->withContent('^XA^FD{{ code }}^FS^XZ')->create();
+        $printer = Printer::factory()->at($host, 9100)->create();
+
+        try {
+            app(PrintLabelAction::class)->execute($item, $template, $printer);
+            Assert::fail('PrinterAddressNotAllowedException expected');
+        } catch (PrinterAddressNotAllowedException) {
+        }
+
+        Assert::assertSame(LabelPrintStatusEnum::FAILED, LabelPrint::query()->where('labelable_id', $item->id)->sole()->status);
+    })->with(['127.0.0.1', '169.254.169.254', 'localhost', '8.8.8.8']);
 
     test('refuses a printer whose driver does not match the template format', function (): void {
         $item = LabelableItem::createWith('SU-P-0003');

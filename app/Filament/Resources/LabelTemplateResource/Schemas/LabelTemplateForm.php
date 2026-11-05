@@ -9,6 +9,8 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Utilities\Get;
+use Modules\Labeling\Actions\ValidateLabelTemplateContentAction;
 use Modules\Labeling\Enums\LabelFormatEnum;
 use Modules\Xot\Filament\Resources\Schemas\XotBaseResourceForm;
 
@@ -64,8 +66,28 @@ class LabelTemplateForm extends XotBaseResourceForm
                 ->required()
                 ->rows(20)
                 ->extraInputAttributes(['class' => 'font-mono text-sm'])
+                ->rule(static fn (Get $get): \Closure => static function (string $attribute, mixed $value, \Closure $fail) use ($get): void {
+                    $format = self::format($get);
+                    if ($format === null || ! is_string($value)) {
+                        return;
+                    }
+
+                    $error = app(ValidateLabelTemplateContentAction::class)->execute($value, $format);
+                    if ($error !== null) {
+                        $fail($error);
+                    }
+                })
                 ->columnSpanFull(),
         ];
+    }
+
+    private static function format(Get $get): ?LabelFormatEnum
+    {
+        $state = $get('format');
+
+        return $state instanceof LabelFormatEnum
+            ? $state
+            : LabelFormatEnum::tryFrom(is_string($state) ? $state : '');
     }
 
     /**

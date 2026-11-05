@@ -12,6 +12,7 @@ use Modules\Labeling\Enums\LabelFormatEnum;
 use Modules\Labeling\Enums\LabelPrintStatusEnum;
 use Modules\Labeling\Exceptions\IncompatiblePrinterException;
 use Modules\Labeling\Exceptions\LabelingException;
+use Modules\Labeling\Exceptions\PrinterNotConfiguredException;
 use Modules\Labeling\Models\LabelPrint;
 use Modules\Labeling\Models\LabelTemplate;
 use Modules\Labeling\Models\Printer;
@@ -25,11 +26,15 @@ use Webmozart\Assert\Assert;
  * 2. stampante: quella passata oppure il default del formato ({@see ResolveDefaultPrinterAction}),
  *    che deve essere attiva e compatibile con il formato del template;
  * 3. render ({@see RenderLabelAction}) e snapshot su `label_prints` in stato `queued`;
- * 4. consegna con il driver della stampante; un template PDF senza stampante produce comunque il file;
- *    un template ZPL senza stampante resta `rendered`.
+ * 4. consegna con il driver della stampante; un template PDF senza stampante produce comunque il file.
  *
- * Un errore di consegna lascia la stampa `failed` con il motivo in `error` e rilancia l'eccezione
- * di dominio, cosi' la UI la notifica e la coda la segna fallita.
+ * Ogni fallimento dopo la scelta del template e' visibile: la stampa resta `failed` con il motivo in
+ * `error` (storico in LabelPrintResource, anche per le stampe in coda) e l'eccezione di dominio si
+ * rilancia, cosi' la UI la notifica e la coda segna il job fallito. Casi:
+ * - template ZPL senza stampante ({@see PrinterNotConfiguredException}): prima restava `rendered`
+ *   e l'operatore leggeva "etichetta in stampa" senza che uscisse nulla;
+ * - template non valido ({@see RenderLabelAction});
+ * - errore del driver (stampante irraggiungibile, indirizzo non consentito, PDF non scritto).
  *
  * @throws LabelingException
  */
@@ -54,31 +59,30 @@ class PrintLabelAction
             }
         }
 
-        $rendered = app(RenderLabelAction::class)->execute($model, $template);
-
         $print = new LabelPrint([
             'label_template_id' => $template->id,
             'printer_id' => $printer?->id,
             'copies' => $copies,
-            'rendered' => $rendered,
+            'rendered' => '',
             'status' => LabelPrintStatusEnum::QUEUED,
         ]);
         $print->labelable()->associate($model);
-        $print->save();
         $print->setRelation('labelTemplate', $template);
         $print->setRelation('printer', $printer);
 
-        $driverClass = $printer?->driver->driverClass()
-            ?? ($template->format === LabelFormatEnum::PDF ? PdfDownloadPrinterDriver::class : null);
-
-        if ($driverClass === null) {
-            return $this->transition($print, LabelPrintStatusEnum::RENDERED);
-        }
-
-        $driver = app($driverClass);
-        Assert::isInstanceOf($driver, PrinterDriverContract::class);
-
         try {
+            $print->rendered = app(RenderLabelAction::class)->execute($model, $template);
+            $print->save();
+
+            $driverClass = $printer?->driver->driverClass()
+                ?? ($template->format === LabelFormatEnum::PDF ? PdfDownloadPrinterDriver::class : null);
+            if ($driverClass === null) {
+                throw PrinterNotConfiguredException::for($template);
+            }
+
+            $driver = app($driverClass);
+            Assert::isInstanceOf($driver, PrinterDriverContract::class);
+
             $delivery = $driver->deliver($print);
         } catch (LabelingException $e) {
             $print->error = $e->getMessage();

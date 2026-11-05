@@ -8,13 +8,16 @@ use Modules\Labeling\Models\Printer;
 
 class PrinterConnectionException extends LabelingException
 {
-    public static function unreachable(Printer $printer, string $reason, int $code = 0): self
+    /**
+     * Il motivo tecnico (errore del socket) non va all'operatore: distinguerebbe porte chiuse, filtrate
+     * o host assenti. Il driver lo scrive nel log.
+     */
+    public static function unreachable(Printer $printer, int $code = 0): self
     {
         return new self((string) __('labeling::exceptions.printer_unreachable', [
             'printer' => $printer->code,
             'host' => (string) $printer->host,
-            'port' => $printer->port,
-            'reason' => $reason,
+            'port' => (string) $printer->port,
         ]), $code);
     }
 

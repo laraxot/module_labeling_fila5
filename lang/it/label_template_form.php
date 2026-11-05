@@ -16,7 +16,7 @@ return [
         'content' => [
             'label' => 'Contenuto',
             'placeholder' => '^XA ... ^XZ',
-            'helper_text' => 'Blade. Variabili: $code, $url, $data, $widthMm, $heightMm, $dpi, $widthDots, $heightDots; nei PDF anche $qrSvg (usare {!! $qrSvg !!}).',
+            'helper_text' => 'Testo ZPL o HTML con segnaposto {{ chiave }}, senza istruzioni. Chiavi: {{ code }}, {{ url }} (contenuto del QR), {{ width_mm }}, {{ height_mm }}, {{ dpi }}, {{ width_dots }}, {{ height_dots }}, {{ data.nome_campo }} (un dato dell\'elemento), {{ line_1 }}...{{ line_N }} (i dati in ordine); solo nei PDF {{ qr_svg }} (immagine del QR). Nei PDF niente immagini, link o file esterni.',
         ],
     ],
 ];

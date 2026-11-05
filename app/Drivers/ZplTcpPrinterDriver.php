@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Labeling\Drivers;
 
+use Illuminate\Support\Facades\Log;
+use Modules\Labeling\Actions\EnsurePrinterAddressAllowedAction;
 use Modules\Labeling\Contracts\PrinterDriverContract;
 use Modules\Labeling\Datas\PrinterDeliveryData;
 use Modules\Labeling\Enums\LabelPrintStatusEnum;
@@ -16,6 +18,10 @@ use Modules\Labeling\Models\Printer;
  * Invia il ZPL alla stampante via socket TCP raw (Zebra & compatibili, porta 9100).
  * Le copie si ottengono ripetendo il job (`^XA...^XZ`), indipendente dal contenuto del template.
  * Timeout di connessione e di scrittura da `config('labeling.zpl_tcp')`.
+ *
+ * Prima di aprire il socket l'indirizzo passa da {@see EnsurePrinterAddressAllowedAction} (rete locale o
+ * lista consentita, porta nell'intervallo): ci si collega all'IP controllato, non al nome.
+ * L'errore del socket va nel log, non nel messaggio all'operatore.
  */
 class ZplTcpPrinterDriver implements PrinterDriverContract
 {
@@ -31,16 +37,25 @@ class ZplTcpPrinterDriver implements PrinterDriverContract
             throw PrinterConnectionException::missingHost($printer);
         }
 
+        $ip = app(EnsurePrinterAddressAllowedAction::class)->execute($host, $printer->port);
+
         $connectTimeout = config()->float('labeling.zpl_tcp.connect_timeout', 3.0);
         $writeTimeout = config()->float('labeling.zpl_tcp.write_timeout', 5.0);
         $payload = str_repeat($print->rendered, max(1, $print->copies));
 
-        $address = sprintf('tcp://%s:%d', str_contains($host, ':') ? '['.trim($host, '[]').']' : trim($host), $printer->port);
+        $address = sprintf('tcp://%s:%d', str_contains($ip, ':') ? '['.$ip.']' : $ip, $printer->port);
         $errno = 0;
         $errstr = '';
         $socket = @stream_socket_client($address, $errno, $errstr, $connectTimeout);
         if ($socket === false) {
-            throw PrinterConnectionException::unreachable($printer, $errstr !== '' ? $errstr : 'errno '.$errno, $errno);
+            Log::warning('Labeling: stampante non raggiungibile', [
+                'printer' => $printer->code,
+                'address' => $address,
+                'errno' => $errno,
+                'error' => $errstr,
+            ]);
+
+            throw PrinterConnectionException::unreachable($printer, $errno);
         }
 
         $written = 0;

@@ -21,12 +21,27 @@ return [
 
     /*
      * Codice della stampante usata quando PrintLabelAction riceve $printer = null, per formato
-     * del template. Senza stampante un template ZPL resta "rendered" (snapshot salvato, nulla
-     * inviato); un template PDF produce comunque il file.
+     * del template. Senza stampante un template ZPL fallisce (stampa `failed` con il motivo, errore
+     * notificato all'operatore); un template PDF produce comunque il file.
      */
     'default_printers' => [
         'zpl' => env('LABELING_DEFAULT_ZPL_PRINTER'),
         'pdf' => env('LABELING_DEFAULT_PDF_PRINTER'),
+    ],
+
+    /*
+     * Indirizzi a cui il server puo' collegarsi per stampare (EnsurePrinterAddressAllowedAction).
+     * Vuota: solo IP privati di LAN (10/8, 172.16/12, 192.168/16, fc00::/7) e hostname che si
+     * risolvono li'; niente loopback ne' indirizzi pubblici. Valorizzata: solo le voci elencate,
+     * IP, CIDR (es. '192.168.10.0/24'), hostname esatti o '*.dominio'. Metadata cloud e link-local
+     * restano sempre vietati.
+     */
+    'allowed_printer_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('LABELING_ALLOWED_PRINTER_HOSTS', ''))))),
+
+    // Porte ammesse per le stampanti di rete (9100 raw Zebra, 6101 alternativa).
+    'printer_ports' => [
+        'min' => 1024,
+        'max' => 65535,
     ],
 
     // Socket raw (porta 9100) verso le stampanti ZPL, in secondi.
@@ -41,7 +56,7 @@ return [
         'directory' => 'labeling/prints',
     ],
 
-    // Lato in pixel dell'SVG del QR passato ai template PDF come $qrSvg.
+    // Lato in pixel dell'SVG del QR inserito nei template PDF con {{ qr_svg }}.
     'qr_size_px' => 256,
 
     'max_copies' => 100,

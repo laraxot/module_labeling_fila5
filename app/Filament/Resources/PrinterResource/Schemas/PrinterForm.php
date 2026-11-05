@@ -9,7 +9,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
+use Modules\Labeling\Actions\EnsurePrinterAddressAllowedAction;
 use Modules\Labeling\Enums\PrinterDriverEnum;
+use Modules\Labeling\Exceptions\PrinterAddressNotAllowedException;
+use Modules\Xot\Actions\Cast\SafeIntCastAction;
 use Modules\Xot\Filament\Resources\Schemas\XotBaseResourceForm;
 
 /**
@@ -46,12 +49,26 @@ class PrinterForm extends XotBaseResourceForm
             'host' => TextInput::make('host')
                 ->maxLength(255)
                 ->visible(static fn (Get $get): bool => self::driver($get)?->requiresHost() ?? false)
-                ->required(static fn (Get $get): bool => self::driver($get)?->requiresHost() ?? false),
+                ->required(static fn (Get $get): bool => self::driver($get)?->requiresHost() ?? false)
+                ->rule(
+                    static fn (Get $get): \Closure => static function (string $attribute, mixed $value, \Closure $fail) use ($get): void {
+                        try {
+                            app(EnsurePrinterAddressAllowedAction::class)->execute(
+                                is_string($value) ? $value : null,
+                                SafeIntCastAction::cast($get('port'), 9100),
+                            );
+                        } catch (PrinterAddressNotAllowedException $e) {
+                            $fail($e->getMessage());
+                        }
+                    },
+                    static fn (Get $get): bool => self::driver($get)?->requiresHost() ?? false,
+                ),
             'port' => TextInput::make('port')
                 ->integer()
-                ->minValue(1)
-                ->maxValue(65535)
+                ->minValue(static fn (): int => config()->integer('labeling.printer_ports.min', 1024))
+                ->maxValue(static fn (): int => config()->integer('labeling.printer_ports.max', 65535))
                 ->default(9100)
+                ->required(static fn (Get $get): bool => self::driver($get)?->requiresHost() ?? false)
                 ->visible(static fn (Get $get): bool => self::driver($get)?->requiresHost() ?? false),
             'is_active' => Toggle::make('is_active')
                 ->default(true),

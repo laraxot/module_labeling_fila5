@@ -115,8 +115,13 @@ Le etichette arrivano dai file lang per classe: `{model}.php`, `{model}_form.php
 
 <<<<<<< .merge_file_zmhSVB
 <<<<<<< HEAD
+<<<<<<< HEAD
 - La connessione database `labeling` deve esistere in `config/database.php`, anche in ambiente di test. Se si usa un solo database, basta un alias della connessione principale.
 =======
+- La connessione database `labeling` la crea il modulo Tenant, copiando la connessione predefinita per ogni modulo attivo. Va definita a mano in `config/{tenant}/database.php` solo se il modulo deve usare un database diverso.
+>>>>>>> laraxot/dev
+=======
+- La connessione database `labeling` deve esistere in `config/database.php`, anche in ambiente di test. Se si usa un solo database, basta un alias della connessione principale.
 - La connessione database `labeling` la crea il modulo Tenant, copiando la connessione predefinita per ogni modulo attivo. Va definita a mano in `config/{tenant}/database.php` solo se il modulo deve usare un database diverso.
 >>>>>>> laraxot/dev
 =======

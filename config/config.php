@@ -3,14 +3,7 @@
 declare(strict_types=1);
 
 return [
-<<<<<<< .merge_file_Yg9L4N
-<<<<<<< HEAD
-=======
     'navigation_sort' => 5,
->>>>>>> laraxot/dev
-=======
-    'navigation_sort' => 5,
->>>>>>> .merge_file_QeWgWe
     'name' => 'Labeling',
     'description' => 'Etichette, identificatori e stampanti per i modelli Labelable',
     'icon' => 'heroicon-o-qr-code',

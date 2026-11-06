@@ -59,7 +59,7 @@ L'unicità "valore attivo per tipo" la garantisce il database tramite l'indice u
 | `ValidateLabelTemplateContentAction` | `execute(string $content, LabelFormatEnum $format): ?string` (messaggio d'errore tradotto o null) |
 | `PrintLabelAction` (queueable) | `execute(Model&LabelableContract $model, ?LabelTemplate $template = null, ?Printer $printer = null, int $copies = 1): LabelPrint` |
 | `GenerateQrSvgAction` | `execute(string $payload, int $sizePx = 256): string` |
-| `BuildLabelUrlAction` | `execute(string $code): string` → `url('/l/{code}')` |
+| `BuildLabelUrlAction` | `execute(string $code): string` → `{APP_URL}/l/{code}` (mai l'Host della richiesta) |
 | `ResolveLabelTemplateAction` | `execute(Model&LabelableContract $model): LabelTemplate` |
 | `ResolveDefaultPrinterAction` | `execute(LabelFormatEnum $format): ?Printer` |
 | `EnsurePrinterAddressAllowedAction` | `execute(?string $host, int $port): string` (IP a cui collegarsi; form stampante e driver ZPL) |
@@ -111,7 +111,7 @@ Stati di `LabelPrint`: `queued` → `sent` (ZPL inviato), `rendered` (PDF pronto
 
 Poi cerca tra gli identificatori attivi tramite `active_value`.
 
-La route `GET /l/{code}` (nome `labeling.resolve`) reindirizza alla pagina di dettaglio Filament del modello risolto e risponde 404 se il codice non è attivo.
+La route `GET /l/{code}` (nome `labeling.resolve`) reindirizza alla pagina di dettaglio Filament del modello risolto e risponde 404 se il codice non è attivo. È pubblica (il QR si apre con la fotocamera del telefono), quindi ha `throttle` (`labeling.resolve_rate_limit` richieste al minuto per IP, default 30). Il QR è sempre costruito da `APP_URL`, mai dall'Host della richiesta.
 
 ## Filament
 
@@ -126,13 +126,14 @@ Le etichette arrivano dai file lang per classe: `{model}.php`, `{model}_form.php
 ## Punti di estensione (config `labeling`)
 
 - `labelables`: le classi proposte nei template.
-- `default_printers.zpl|pdf`: il codice della stampante di default (env `LABELING_DEFAULT_ZPL_PRINTER`, `LABELING_DEFAULT_PDF_PRINTER`).
+- `default_printers.zpl|pdf`: il codice della stampante di default (env `LABELING_DEFAULT_ZPL_PRINTER`, `LABELING_DEFAULT_PDF_PRINTER`, lette via `config('env.*')` così reggono `config:cache`).
 - `zpl_tcp.connect_timeout|write_timeout`: i timeout del socket verso le stampanti ZPL.
-- `allowed_printer_hosts` (env `LABELING_ALLOWED_PRINTER_HOSTS`, separati da virgola): indirizzi a cui il server può collegarsi per stampare. Vuota = solo IP privati di LAN (10/8, 172.16/12, 192.168/16, fc00::/7) e hostname che si risolvono lì. Valorizzata = solo IP, CIDR, hostname esatti o `*.dominio` elencati. Metadata cloud (169.254.169.254, 100.100.100.200, fd00:ec2::254), link-local, 0.0.0.0/8 e multicast sono sempre vietati.
+- `allowed_printer_hosts` (env `LABELING_ALLOWED_PRINTER_HOSTS`, separati da virgola, letta via `config('env.*')`): indirizzi a cui il server può collegarsi per stampare. Vuota = solo IP privati di LAN (10/8, 172.16/12, 192.168/16, fc00::/7) e hostname che si risolvono lì. Valorizzata = solo IP, CIDR, hostname esatti o `*.dominio` elencati. Metadata cloud (169.254.169.254, 100.100.100.200, fd00:ec2::254), link-local, 0.0.0.0/8 e multicast sono sempre vietati.
 - `printer_ports.min|max`: intervallo di porte ammesse (default 1024–65535: niente SSH, SMTP, HTTP…).
 - `pdf.disk|directory`: dove salvare i PDF.
 - `qr_size_px`: il lato in pixel del QR nei PDF.
 - `max_copies`: il numero massimo di copie per stampa.
+- `resolve_rate_limit`: richieste al minuto per IP su `GET /l/{code}`.
 
 ## Requisiti del progetto
 

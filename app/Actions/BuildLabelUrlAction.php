@@ -8,8 +8,12 @@ use Spatie\QueueableAction\QueueableAction;
 use Webmozart\Assert\Assert;
 
 /**
- * URL codificato nel QR: `url('/l/{code}')`, risolto dalla route `labeling.resolve`.
+ * URL codificato nel QR: `{APP_URL}/l/{code}`, risolto dalla route `labeling.resolve`.
  * Funziona anche con la fotocamera del telefono, fuori dall'app.
+ *
+ * La radice e' sempre `config('app.url')`, mai l'Host della richiesta in corso (`url()`): un'etichetta
+ * stampata da una richiesta con Host manipolato porterebbe altrimenti un QR verso un dominio esterno
+ * (audit di sicurezza B2). Le stampe in coda (senza richiesta) usano la stessa radice.
  */
 class BuildLabelUrlAction
 {
@@ -19,6 +23,9 @@ class BuildLabelUrlAction
     {
         Assert::stringNotEmpty($code);
 
-        return url('/l/'.rawurlencode($code));
+        $root = rtrim(config()->string('app.url'), '/');
+        Assert::stringNotEmpty($root, 'config app.url (APP_URL) is required to build label URLs');
+
+        return $root.'/l/'.rawurlencode($code);
     }
 }

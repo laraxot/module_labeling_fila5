@@ -32,6 +32,28 @@ abstract class TestCase extends XotBaseTestCase
     }
 
     /**
+     * Esegue $callback e verifica che lanci $class; restituisce l'eccezione. Sostituisce `->throws()` e
+     * `expect()->toThrow()`, che PHPStan segnala come classi interne di Pest.
+     *
+     * @template T of \Throwable
+     *
+     * @param  class-string<T>  $class
+     * @return T
+     */
+    public static function assertCallbackThrows(string $class, \Closure $callback): \Throwable
+    {
+        try {
+            $callback();
+        } catch (\Throwable $e) {
+            self::assertInstanceOf($class, $e);
+
+            return $e;
+        }
+
+        self::fail($class.' expected');
+    }
+
+    /**
      * @return array<int, class-string<ServiceProvider>>
      */
     protected function getPackageProviders(Application $app): array

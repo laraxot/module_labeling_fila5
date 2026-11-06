@@ -14,9 +14,8 @@ use PHPUnit\Framework\Assert;
 uses(TestCase::class);
 
 describe('LabelPrintStatusEnum', function (): void {
-    test('allows only the documented transitions', function (LabelPrintStatusEnum $from, LabelPrintStatusEnum $to, bool $allowed): void {
-        Assert::assertSame($allowed, $from->canTransitionTo($to));
-    })->with([
+    test('allows only the documented transitions', function (): void {
+        $cases = [
         [LabelPrintStatusEnum::QUEUED, LabelPrintStatusEnum::SENT, true],
         [LabelPrintStatusEnum::QUEUED, LabelPrintStatusEnum::RENDERED, true],
         [LabelPrintStatusEnum::QUEUED, LabelPrintStatusEnum::FAILED, true],
@@ -24,7 +23,12 @@ describe('LabelPrintStatusEnum', function (): void {
         [LabelPrintStatusEnum::SENT, LabelPrintStatusEnum::QUEUED, false],
         [LabelPrintStatusEnum::FAILED, LabelPrintStatusEnum::SENT, false],
         [LabelPrintStatusEnum::RENDERED, LabelPrintStatusEnum::QUEUED, false],
-    ]);
+        ];
+
+        foreach ($cases as [$from, $to, $allowed]) {
+            Assert::assertSame($allowed, $from->canTransitionTo($to), $from->value.' -> '.$to->value);
+        }
+    });
 
     test('has a translated label for every case', function (): void {
         foreach (LabelPrintStatusEnum::cases() as $case) {

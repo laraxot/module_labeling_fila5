@@ -47,7 +47,7 @@ describe('RenderLabelAction', function (): void {
 
     test('renders PDF HTML with escaped values and the inline QR svg', function (): void {
         if (! class_exists(QRCode::class)) {
-            test()->markTestSkipped('chillerlan/php-qrcode non installato');
+            Assert::markTestSkipped('chillerlan/php-qrcode non installato');
         }
 
         $item = new LabelableItem(['code' => 'SU-2', 'name' => '<b>x</b> "q"']);
@@ -68,36 +68,40 @@ describe('RenderLabelAction', function (): void {
         Assert::assertSame('^XA^FD||{{ code }}^FS^XZ', $zpl);
     });
 
-    test('never executes Blade or PHP written in the template', function (string $content): void {
+    test('never executes Blade or PHP written in the template', function (): void {
         $item = new LabelableItem(['code' => 'SU-4']);
+        $payloads = [
+            "^XA@php \$GLOBALS['labeling_pwned'] = true; @endphp^XZ",
+            "^XA{!! \$GLOBALS['labeling_pwned'] = true !!}^XZ",
+            "^XA{{ \$GLOBALS['labeling_pwned'] = true }}^XZ",
+            '^XA{{ app()->environment() }}^XZ',
+            "^XA<?php \$GLOBALS['labeling_pwned'] = true; ?>^XZ",
+            '^XA@foreach ($data as $v)^FD{{ $v }}^FS@endforeach^XZ',
+        ];
 
-        try {
-            app(RenderLabelAction::class)->execute($item, labelingTemplate(LabelFormatEnum::ZPL, $content));
-            Assert::fail('LabelRenderException expected');
-        } catch (LabelRenderException) {
+        foreach ($payloads as $content) {
+            TestCase::assertCallbackThrows(LabelRenderException::class, static fn (): string => app(RenderLabelAction::class)->execute($item, labelingTemplate(LabelFormatEnum::ZPL, $content)));
         }
 
         Assert::assertArrayNotHasKey('labeling_pwned', $GLOBALS);
-    })->with([
-        'php directive' => ["^XA@php \$GLOBALS['labeling_pwned'] = true; @endphp^XZ"],
-        'raw echo' => ["^XA{!! \$GLOBALS['labeling_pwned'] = true !!}^XZ"],
-        'expression echo' => ["^XA{{ \$GLOBALS['labeling_pwned'] = true }}^XZ"],
-        'function call' => ['^XA{{ app()->environment() }}^XZ'],
-        'php tag' => ["^XA<?php \$GLOBALS['labeling_pwned'] = true; ?>^XZ"],
-        'foreach' => ['^XA@foreach ($data as $v)^FD{{ $v }}^FS@endforeach^XZ'],
-    ]);
+    });
 
-    test('refuses PDF templates that load files or URLs', function (string $content): void {
-        app(RenderLabelAction::class)->execute(new LabelableItem(['code' => 'SU-5']), labelingTemplate(LabelFormatEnum::PDF, $content));
-    })->throws(LabelRenderException::class)->with([
-        'img' => ['<img src="/etc/passwd">'],
-        'css url' => ['<div style="background-image: url(file:///etc/passwd)">x</div>'],
-        'link' => ['<link rel="stylesheet" href="http://169.254.169.254/">'],
-    ]);
+    test('refuses PDF templates that load files or URLs', function (): void {
+        $item = new LabelableItem(['code' => 'SU-5']);
+        $payloads = [
+            '<img src="/etc/passwd">',
+            '<div style="background-image: url(file:///etc/passwd)">x</div>',
+            '<link rel="stylesheet" href="http://169.254.169.254/">',
+        ];
+
+        foreach ($payloads as $content) {
+            TestCase::assertCallbackThrows(LabelRenderException::class, static fn (): string => app(RenderLabelAction::class)->execute($item, labelingTemplate(LabelFormatEnum::PDF, $content)));
+        }
+    });
 
     test('qr_svg is a PDF-only placeholder', function (): void {
-        app(RenderLabelAction::class)->execute(new LabelableItem(['code' => 'SU-6']), labelingTemplate(LabelFormatEnum::ZPL, '^XA{{ qr_svg }}^XZ'));
-    })->throws(LabelRenderException::class);
+        TestCase::assertCallbackThrows(LabelRenderException::class, static fn (): string => app(RenderLabelAction::class)->execute(new LabelableItem(['code' => 'SU-6']), labelingTemplate(LabelFormatEnum::ZPL, '^XA{{ qr_svg }}^XZ')));
+    });
 
     test('the seeded default templates are valid and render every line', function (): void {
         $item = new LabelableItem(['code' => 'SU-7', 'name' => 'Big bag']);
@@ -130,7 +134,7 @@ describe('ValidateLabelTemplateContentAction', function (): void {
 describe('GenerateQrSvgAction', function (): void {
     test('returns an inline svg of the requested size', function (): void {
         if (! class_exists(QRCode::class)) {
-            test()->markTestSkipped('chillerlan/php-qrcode non installato');
+            Assert::markTestSkipped('chillerlan/php-qrcode non installato');
         }
 
         $svg = app(GenerateQrSvgAction::class)->execute('https://host/l/SU-1', 128);

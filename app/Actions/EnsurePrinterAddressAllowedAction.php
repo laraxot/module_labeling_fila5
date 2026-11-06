@@ -140,11 +140,9 @@ class EnsurePrinterAddressAllowedAction
     private static function inAny(string $packed, array $networks): bool
     {
         foreach ($networks as $network) {
-            [$address, $bits] = str_contains($network, '/') ? explode('/', $network, 2) : [$network, null];
-            if ($address === null) {
-                continue;
-            }
-            $net = self::pack($address);
+            $parts = explode('/', $network, 2);
+            $net = self::pack($parts[0]);
+            $bits = $parts[1] ?? null;
             if ($net === null || strlen($net) !== strlen($packed)) {
                 continue;
             }

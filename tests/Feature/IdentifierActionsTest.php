@@ -56,8 +56,8 @@ describe('AssignIdentifierAction', function (): void {
     test('refuses a value already active on another model', function (): void {
         app(AssignIdentifierAction::class)->execute(LabelableItem::createWith('SU-T-0005'), IdentifierTypeEnum::QR, 'SHARED-1');
 
-        app(AssignIdentifierAction::class)->execute(LabelableItem::createWith('SU-T-0006'), IdentifierTypeEnum::QR, 'SHARED-1');
-    })->throws(IdentifierAlreadyAssignedException::class);
+        TestCase::assertCallbackThrows(IdentifierAlreadyAssignedException::class, static fn (): Identifier => app(AssignIdentifierAction::class)->execute(LabelableItem::createWith('SU-T-0006'), IdentifierTypeEnum::QR, 'SHARED-1'));
+    });
 
     test('allows reusing a revoked value', function (): void {
         $old = app(AssignIdentifierAction::class)->execute(LabelableItem::createWith('SU-T-0007'), IdentifierTypeEnum::QR, 'REUSED-1');
@@ -70,24 +70,22 @@ describe('AssignIdentifierAction', function (): void {
     });
 
     test('requires the read value for RFID tags', function (): void {
-        app(AssignIdentifierAction::class)->execute(LabelableItem::createWith('SU-T-0009'), IdentifierTypeEnum::RFID_UHF);
-    })->throws(InvalidArgumentException::class);
+        TestCase::assertCallbackThrows(InvalidArgumentException::class, static fn (): Identifier => app(AssignIdentifierAction::class)->execute(LabelableItem::createWith('SU-T-0009'), IdentifierTypeEnum::RFID_UHF));
+    });
 });
 
 describe('ResolveIdentifiableAction', function (): void {
-    test('resolves the model from the raw code, the QR url and a wedge reading', function (string $scanned): void {
+    test('resolves the model from the raw code, the QR url and a wedge reading', function (): void {
         $item = LabelableItem::createWith('SU-R-0001');
         app(AssignIdentifierAction::class)->execute($item, IdentifierTypeEnum::QR);
 
-        $resolved = app(ResolveIdentifiableAction::class)->execute($scanned);
+        foreach (['SU-R-0001', 'https://roosko.example.it/l/SU-R-0001', "SU-R-0001\r\n"] as $scanned) {
+            $resolved = app(ResolveIdentifiableAction::class)->execute($scanned);
 
-        Assert::assertInstanceOf(LabelableItem::class, $resolved);
-        Assert::assertSame($item->id, $resolved->getKey());
-    })->with([
-        'code' => ['SU-R-0001'],
-        'url' => ['https://roosko.example.it/l/SU-R-0001'],
-        'wedge' => ["SU-R-0001\r\n"],
-    ]);
+            Assert::assertInstanceOf(LabelableItem::class, $resolved, $scanned);
+            Assert::assertSame($item->id, $resolved->getKey(), $scanned);
+        }
+    });
 
     test('resolves RFID tags regardless of case and separators', function (): void {
         $item = LabelableItem::createWith('SU-R-0002');

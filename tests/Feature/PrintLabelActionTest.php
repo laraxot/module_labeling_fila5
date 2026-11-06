@@ -97,35 +97,33 @@ describe('PrintLabelAction', function (): void {
         Assert::assertNull($print->printed_at);
     });
 
-    test('never opens a socket towards loopback or cloud metadata addresses', function (string $host): void {
-        $item = LabelableItem::createWith('SU-P-0007');
+    test('never opens a socket towards loopback or cloud metadata addresses', function (): void {
         $template = LabelTemplate::factory()->withContent('^XA^FD{{ code }}^FS^XZ')->create();
-        $printer = Printer::factory()->at($host, 9100)->create();
 
-        try {
-            app(PrintLabelAction::class)->execute($item, $template, $printer);
-            Assert::fail('PrinterAddressNotAllowedException expected');
-        } catch (PrinterAddressNotAllowedException) {
+        foreach (['127.0.0.1', '169.254.169.254', 'localhost', '8.8.8.8'] as $i => $host) {
+            $item = LabelableItem::createWith('SU-P-007'.$i);
+            $printer = Printer::factory()->at($host, 9100)->create();
+
+            TestCase::assertCallbackThrows(PrinterAddressNotAllowedException::class, static fn (): LabelPrint => app(PrintLabelAction::class)->execute($item, $template, $printer));
+            Assert::assertSame(LabelPrintStatusEnum::FAILED, LabelPrint::query()->where('labelable_id', $item->id)->sole()->status, $host);
         }
-
-        Assert::assertSame(LabelPrintStatusEnum::FAILED, LabelPrint::query()->where('labelable_id', $item->id)->sole()->status);
-    })->with(['127.0.0.1', '169.254.169.254', 'localhost', '8.8.8.8']);
+    });
 
     test('refuses a printer whose driver does not match the template format', function (): void {
         $item = LabelableItem::createWith('SU-P-0003');
         $template = LabelTemplate::factory()->create();
         $printer = Printer::factory()->pdf()->create();
 
-        app(PrintLabelAction::class)->execute($item, $template, $printer);
-    })->throws(IncompatiblePrinterException::class);
+        TestCase::assertCallbackThrows(IncompatiblePrinterException::class, static fn (): LabelPrint => app(PrintLabelAction::class)->execute($item, $template, $printer));
+    });
 
     test('fails clearly when no template is available', function (): void {
         LabelTemplate::query()->update(['is_active' => false]);
 
-        app(PrintLabelAction::class)->execute(LabelableItem::createWith('SU-P-0004'));
-    })->throws(LabelTemplateNotFoundException::class);
+        TestCase::assertCallbackThrows(LabelTemplateNotFoundException::class, static fn (): LabelPrint => app(PrintLabelAction::class)->execute(LabelableItem::createWith('SU-P-0004')));
+    });
 
     test('rejects an out of range number of copies', function (): void {
-        app(PrintLabelAction::class)->execute(LabelableItem::createWith('SU-P-0005'), copies: 0);
-    })->throws(InvalidArgumentException::class);
+        TestCase::assertCallbackThrows(InvalidArgumentException::class, static fn (): LabelPrint => app(PrintLabelAction::class)->execute(LabelableItem::createWith('SU-P-0005'), copies: 0));
+    });
 });

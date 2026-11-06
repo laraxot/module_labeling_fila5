@@ -7,6 +7,9 @@ namespace Modules\Labeling\Actions;
 use Modules\Labeling\Enums\LabelFormatEnum;
 use Spatie\QueueableAction\QueueableAction;
 
+use function Safe\preg_match;
+use function Safe\preg_match_all;
+
 /**
  * Controlla il contenuto di un template di etichetta prima di salvarlo (form) e prima di ogni
  * render ({@see RenderLabelAction}). Restituisce il messaggio d'errore tradotto, null se valido.
@@ -47,7 +50,7 @@ class ValidateLabelTemplateContentAction
             return $this->message('raw_echo');
         }
 
-        if (preg_match(self::DIRECTIVE_PATTERN, $content, $directive) === 1) {
+        if (preg_match(self::DIRECTIVE_PATTERN, $content, $directive) === 1 && isset($directive[0]) && is_string($directive[0])) {
             return $this->message('directive', ['directive' => $directive[0]]);
         }
 
@@ -59,7 +62,7 @@ class ValidateLabelTemplateContentAction
             }
         }
 
-        if ($format === LabelFormatEnum::PDF && preg_match(self::PDF_EXTERNAL_RESOURCE_PATTERN, $content, $resource) === 1) {
+        if ($format === LabelFormatEnum::PDF && preg_match(self::PDF_EXTERNAL_RESOURCE_PATTERN, $content, $resource) === 1 && isset($resource[0]) && is_string($resource[0])) {
             return $this->message('external_resource', ['resource' => trim($resource[0])]);
         }
 

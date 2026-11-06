@@ -74,11 +74,14 @@ trait ConfiguresPrintLabelAction
                     ->maxValue(config()->integer('labeling.max_copies', 100))
                     ->required(),
             ])
-            ->action(fn (array $data, ?Model $record): ?StreamedResponse => $this->printLabel($data, $record));
+            ->action(
+                /** @param array<string, mixed> $data */
+                fn (array $data, ?Model $record): ?StreamedResponse => $this->printLabel($data, $record),
+            );
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param  array<array-key, mixed>  $data
      */
     protected function printLabel(array $data, ?Model $record): ?StreamedResponse
     {

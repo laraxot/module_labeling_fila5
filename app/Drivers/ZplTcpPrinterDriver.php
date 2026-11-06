@@ -14,6 +14,12 @@ use Modules\Labeling\Exceptions\PrinterTimeoutException;
 use Modules\Labeling\Models\LabelPrint;
 use Modules\Labeling\Models\Printer;
 
+use function Safe\fclose;
+use function Safe\fflush;
+use function Safe\fwrite;
+use function Safe\stream_set_timeout;
+use function Safe\stream_socket_client;
+
 /**
  * Invia il ZPL alla stampante via socket TCP raw (Zebra & compatibili, porta 9100).
  * Le copie si ottengono ripetendo il job (`^XA...^XZ`), indipendente dal contenuto del template.
@@ -46,16 +52,18 @@ class ZplTcpPrinterDriver implements PrinterDriverContract
         $address = sprintf('tcp://%s:%d', str_contains($ip, ':') ? '['.$ip.']' : $ip, $printer->port);
         $errno = 0;
         $errstr = '';
-        $socket = @stream_socket_client($address, $errno, $errstr, $connectTimeout);
-        if ($socket === false) {
+        try {
+            $socket = stream_socket_client($address, $errno, $errstr, $connectTimeout);
+        } catch (\Throwable $e) {
             Log::warning('Labeling: stampante non raggiungibile', [
                 'printer' => $printer->code,
                 'address' => $address,
                 'errno' => $errno,
                 'error' => $errstr,
+                'exception' => $e->getMessage(),
             ]);
 
-            throw PrinterConnectionException::unreachable($printer, $errno);
+            throw PrinterConnectionException::unreachable($printer, $errno ?? 0);
         }
 
         $written = 0;
@@ -65,11 +73,11 @@ class ZplTcpPrinterDriver implements PrinterDriverContract
 
             $length = strlen($payload);
             while ($written < $length) {
-                $chunk = @fwrite($socket, substr($payload, $written));
+                $chunk = fwrite($socket, substr($payload, $written));
                 if (stream_get_meta_data($socket)['timed_out']) {
                     throw PrinterTimeoutException::whileWriting($printer, $writeTimeout);
                 }
-                if ($chunk === false || $chunk === 0) {
+                if ($chunk === 0) {
                     throw PrinterConnectionException::writeFailed($printer);
                 }
                 $written += $chunk;

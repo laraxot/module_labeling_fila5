@@ -17,14 +17,17 @@ use Modules\Labeling\Tests\Fixtures\LabelableItem;
 use Modules\Labeling\Tests\TestCase;
 use PHPUnit\Framework\Assert;
 
+use function Safe\fclose;
+use function Safe\stream_socket_get_name;
+use function Safe\stream_socket_server;
+
 uses(TestCase::class);
 
 /** Una porta TCP locale sicuramente chiusa: aperta e richiusa subito. */
 function labelingClosedPort(): int
 {
     $server = stream_socket_server('tcp://127.0.0.1:0');
-    Assert::assertNotFalse($server);
-    $name = (string) stream_socket_get_name($server, false);
+    $name = stream_socket_get_name($server, false);
     fclose($server);
 
     return (int) substr($name, strrpos($name, ':') + 1);

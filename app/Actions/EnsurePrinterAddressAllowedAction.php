@@ -7,6 +7,9 @@ namespace Modules\Labeling\Actions;
 use Modules\Labeling\Exceptions\PrinterAddressNotAllowedException;
 use Spatie\QueueableAction\QueueableAction;
 
+use function Safe\inet_pton;
+use function Safe\preg_match;
+
 /**
  * Indirizzo di rete di una stampante ZPL: controlla host e porta e restituisce l'IP a cui collegarsi.
  * Usata dal form della stampante e da {@see \Modules\Labeling\Drivers\ZplTcpPrinterDriver} prima di
@@ -138,6 +141,9 @@ class EnsurePrinterAddressAllowedAction
     {
         foreach ($networks as $network) {
             [$address, $bits] = str_contains($network, '/') ? explode('/', $network, 2) : [$network, null];
+            if ($address === null) {
+                continue;
+            }
             $net = self::pack($address);
             if ($net === null || strlen($net) !== strlen($packed)) {
                 continue;
@@ -171,9 +177,6 @@ class EnsurePrinterAddressAllowedAction
         }
 
         $packed = inet_pton($ip);
-        if ($packed === false) {
-            return null;
-        }
 
         return strlen($packed) === 16 && str_starts_with($packed, str_repeat("\0", 10)."\xff\xff")
             ? substr($packed, 12)

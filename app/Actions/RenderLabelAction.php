@@ -11,6 +11,9 @@ use Modules\Labeling\Exceptions\LabelRenderException;
 use Modules\Labeling\Models\LabelTemplate;
 use Spatie\QueueableAction\QueueableAction;
 
+use function Safe\preg_match;
+use function Safe\preg_replace_callback;
+
 /**
  * Renderizza il template di un'etichetta sostituendo segnaposto chiusi `{{ chiave }}`.
  *
@@ -71,7 +74,11 @@ class RenderLabelAction
 
         $rendered = preg_replace_callback(
             ValidateLabelTemplateContentAction::PLACEHOLDER_PATTERN,
-            static fn (array $match): string => $replacements[trim($match[1])] ?? '',
+            static function (array $match) use ($replacements): string {
+                $key = $match[1] ?? null;
+
+                return is_string($key) ? ($replacements[trim($key)] ?? '') : '';
+            },
             $template->content,
         );
 

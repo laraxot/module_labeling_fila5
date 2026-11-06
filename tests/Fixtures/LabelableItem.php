@@ -21,7 +21,7 @@ class LabelableItem extends Model implements LabelableContract
 {
     use HasIdentifiers;
 
-    public const TABLE = 'labeling_test_items';
+    public const string TABLE = 'labeling_test_items';
 
     /** @var string */
     protected $connection = 'labeling';

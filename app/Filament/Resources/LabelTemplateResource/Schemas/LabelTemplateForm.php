@@ -20,7 +20,7 @@ use Modules\Xot\Filament\Resources\Schemas\XotBaseResourceForm;
 class LabelTemplateForm extends XotBaseResourceForm
 {
     /** Risoluzioni delle testine termiche piu' diffuse (8, 12, 24 punti/mm). */
-    private const DPI = [152, 203, 300, 600];
+    private const array DPI = [152, 203, 300, 600];
 
     public function getFormColumns(): int
     {

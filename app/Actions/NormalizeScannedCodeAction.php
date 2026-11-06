@@ -7,6 +7,9 @@ namespace Modules\Labeling\Actions;
 use Modules\Labeling\Datas\NormalizedScanData;
 use Spatie\QueueableAction\QueueableAction;
 
+use function Safe\preg_match;
+use function Safe\preg_replace;
+
 /**
  * Ripulisce una lettura grezza prima della ricerca. Funzione pura (testata in unit).
  *
@@ -19,7 +22,7 @@ class NormalizeScannedCodeAction
     use QueueableAction;
 
     /** Lunghezza minima, in cifre esadecimali, di un UID NFC (4 byte) o EPC RFID. */
-    private const MIN_HEX_LENGTH = 8;
+    private const int MIN_HEX_LENGTH = 8;
 
     public function execute(string $scanned): NormalizedScanData
     {
@@ -28,7 +31,7 @@ class NormalizeScannedCodeAction
 
         $fromUrl = false;
         if (str_contains($clean, '://') || str_starts_with($clean, '/')) {
-            if (preg_match('~/l/([^/?#]+)/?(?:[?#].*)?$~', $clean, $matches) === 1) {
+            if (preg_match('~/l/([^/?#]+)/?(?:[?#].*)?$~', $clean, $matches) === 1 && isset($matches[1]) && is_string($matches[1])) {
                 $clean = trim(rawurldecode($matches[1]));
                 $fromUrl = true;
             }

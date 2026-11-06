@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+$allowedPrinterHosts = config('env.LABELING_ALLOWED_PRINTER_HOSTS');
+$allowedPrinterHosts = is_string($allowedPrinterHosts) ? $allowedPrinterHosts : '';
+
 return [
     'navigation_sort' => 5,
     'name' => 'Labeling',
@@ -25,8 +28,8 @@ return [
      * notificato all'operatore); un template PDF produce comunque il file.
      */
     'default_printers' => [
-        'zpl' => env('LABELING_DEFAULT_ZPL_PRINTER'),
-        'pdf' => env('LABELING_DEFAULT_PDF_PRINTER'),
+        'zpl' => config('env.LABELING_DEFAULT_ZPL_PRINTER'),
+        'pdf' => config('env.LABELING_DEFAULT_PDF_PRINTER'),
     ],
 
     /*
@@ -36,7 +39,7 @@ return [
      * IP, CIDR (es. '192.168.10.0/24'), hostname esatti o '*.dominio'. Metadata cloud e link-local
      * restano sempre vietati.
      */
-    'allowed_printer_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('LABELING_ALLOWED_PRINTER_HOSTS', ''))))),
+    'allowed_printer_hosts' => array_values(array_filter(array_map('trim', explode(',', $allowedPrinterHosts)))),
 
     // Porte ammesse per le stampanti di rete (9100 raw Zebra, 6101 alternativa).
     'printer_ports' => [

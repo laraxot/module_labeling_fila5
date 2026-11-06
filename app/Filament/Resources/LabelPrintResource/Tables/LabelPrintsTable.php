@@ -82,11 +82,12 @@ class LabelPrintsTable extends XotBaseResourceTable
         return [];
     }
 
-    /** Download del PDF prodotto dal driver pdf_download. */
+    /** Download del PDF prodotto dal driver pdf_download (abilita' `view` della LabelPrint). */
     public static function downloadAction(): Action
     {
         return Action::make('download')
             ->icon('heroicon-o-arrow-down-tray')
+            ->authorize('view')
             ->visible(static fn (LabelPrint $record): bool => $record->output_path !== null)
             ->action(static function (LabelPrint $record): ?StreamedResponse {
                 if ($record->output_path === null) {
@@ -99,12 +100,14 @@ class LabelPrintsTable extends XotBaseResourceTable
             });
     }
 
-    /** Nuova stampa con stesso modello, template, stampante e copie. */
+    /** Nuova stampa con stesso modello, template, stampante e copie (abilita' `create`, rate limit). */
     public static function reprintAction(): Action
     {
         return Action::make('reprint')
             ->icon('heroicon-o-printer')
             ->requiresConfirmation()
+            ->authorize('create')
+            ->rateLimit(static fn (): int => config()->integer('labeling.print_rate_limit', 20))
             ->visible(static fn (LabelPrint $record): bool => $record->labelable instanceof LabelableContract)
             ->action(static function (LabelPrint $record): void {
                 $labelable = $record->labelable;

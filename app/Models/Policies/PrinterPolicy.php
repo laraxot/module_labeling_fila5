@@ -6,9 +6,16 @@ namespace Modules\Labeling\Models\Policies;
 
 use Modules\User\Models\Policies\UserBasePolicy;
 use Modules\Xot\Contracts\UserContract;
+use Modules\Xot\Models\Policies\Concerns\DeniesUndeclaredFilamentAbilities;
 
+/**
+ * Le abilita' Filament non dichiarate (eliminazione massiva, replica, riordino, ...) sono negate
+ * ({@see DeniesUndeclaredFilamentAbilities}).
+ */
 class PrinterPolicy extends UserBasePolicy
 {
+    use DeniesUndeclaredFilamentAbilities;
+
     public function viewAny(UserContract $user): bool
     {
         return $user->hasPermissionTo('printer.viewAny');

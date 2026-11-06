@@ -6,12 +6,17 @@ namespace Modules\Labeling\Models\Policies;
 
 use Modules\User\Models\Policies\UserBasePolicy;
 use Modules\Xot\Contracts\UserContract;
+use Modules\Xot\Models\Policies\Concerns\DeniesUndeclaredFilamentAbilities;
 
 /**
- * Lo storico stampe non si modifica a mano: `create` copre stampa e ristampa.
+ * Lo storico stampe non si modifica a mano. `create` copre stampa (PrintLabelTableAction /
+ * PrintLabelHeaderAction, su qualunque modello Labelable) e ristampa; `view` copre il download del PDF.
+ * Le abilita' Filament non dichiarate sono negate ({@see DeniesUndeclaredFilamentAbilities}).
  */
 class LabelPrintPolicy extends UserBasePolicy
 {
+    use DeniesUndeclaredFilamentAbilities;
+
     public function viewAny(UserContract $user): bool
     {
         return $user->hasPermissionTo('label_print.viewAny');

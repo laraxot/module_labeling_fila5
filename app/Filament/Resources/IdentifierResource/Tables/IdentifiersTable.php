@@ -65,6 +65,7 @@ class IdentifiersTable extends XotBaseResourceTable
                 ->color('danger')
                 ->iconButton()
                 ->requiresConfirmation()
+                ->authorize('update')
                 ->visible(static fn (Identifier $record): bool => $record->is_active)
                 ->action(static fn (Identifier $record): Identifier => app(RevokeIdentifierAction::class)->execute($record)),
         ];

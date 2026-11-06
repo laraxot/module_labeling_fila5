@@ -6,12 +6,17 @@ namespace Modules\Labeling\Models\Policies;
 
 use Modules\User\Models\Policies\UserBasePolicy;
 use Modules\Xot\Contracts\UserContract;
+use Modules\Xot\Models\Policies\Concerns\DeniesUndeclaredFilamentAbilities;
 
 /**
- * Gli identificatori si creano con AssignIdentifierAction e si revocano: `update` copre la revoca.
+ * Gli identificatori si creano con AssignIdentifierAction e si revocano: `update` copre la revoca
+ * (azione "Revoca" di IdentifierResource). Le abilita' Filament non dichiarate sono negate
+ * ({@see DeniesUndeclaredFilamentAbilities}).
  */
 class IdentifierPolicy extends UserBasePolicy
 {
+    use DeniesUndeclaredFilamentAbilities;
+
     public function viewAny(UserContract $user): bool
     {
         return $user->hasPermissionTo('identifier.viewAny');

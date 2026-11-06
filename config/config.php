@@ -67,6 +67,9 @@ return [
 
     'max_copies' => 100,
 
+    // Stampe e ristampe al minuto dalle azioni Filament (rateLimit: per IP, componente e azione).
+    'print_rate_limit' => 20,
+
     // Richieste al minuto per IP sulla route pubblica GET /l/{code} (throttle).
     'resolve_rate_limit' => 30,
 ];

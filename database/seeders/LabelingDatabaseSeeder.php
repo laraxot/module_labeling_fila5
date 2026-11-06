@@ -15,6 +15,7 @@ class LabelingDatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            LabelingPermissionSeeder::class,
             LabelTemplateSeeder::class,
             PrinterSeeder::class,
         ]);

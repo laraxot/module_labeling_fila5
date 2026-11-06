@@ -10,11 +10,13 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Modules\Labeling\Actions\PrintLabelAction;
 use Modules\Labeling\Actions\ResolveLabelTemplateAction;
 use Modules\Labeling\Contracts\LabelableContract;
 use Modules\Labeling\Exceptions\LabelingException;
+use Modules\Labeling\Models\LabelPrint;
 use Modules\Labeling\Models\LabelTemplate;
 use Modules\Labeling\Models\Printer;
 use Modules\Xot\Actions\Cast\SafeIntCastAction;
@@ -32,7 +34,9 @@ use Webmozart\Assert\Assert;
  * l'etichetta automatica (`fields.*`) dallo stesso file.
  *
  * Il bottone chiama soltanto {@see PrintLabelAction}; se la stampa produce un PDF lo restituisce
- * come download.
+ * come download. Autorizzazione: `create` su LabelPrint (permesso `label_print.create`), controllata
+ * sia dal bottone (`authorize`) sia prima della stampa; `rateLimit` da `labeling.print_rate_limit`
+ * (stampe al minuto per IP e azione).
  */
 trait ConfiguresPrintLabelAction
 {
@@ -52,6 +56,8 @@ trait ConfiguresPrintLabelAction
             ->modalDescription(fn (): string => $this->transPrintLabel('modal_description'))
             ->modalSubmitActionLabel(fn (): string => $this->transPrintLabel('submit'))
             ->visible(static fn (?Model $record): bool => $record instanceof LabelableContract)
+            ->authorize(static fn (): bool => self::canPrint())
+            ->rateLimit(static fn (): int => config()->integer('labeling.print_rate_limit', 20))
             ->fillForm(fn (?Model $record): array => [
                 'label_template_id' => $this->defaultTemplateId($record),
                 'printer_id' => null,
@@ -85,7 +91,7 @@ trait ConfiguresPrintLabelAction
      */
     protected function printLabel(array $data, ?Model $record): ?StreamedResponse
     {
-        if (! $record instanceof LabelableContract) {
+        if (! $record instanceof LabelableContract || ! self::canPrint()) {
             return null;
         }
 
@@ -123,6 +129,12 @@ trait ConfiguresPrintLabelAction
         Assert::isInstanceOf($disk, FilesystemAdapter::class);
 
         return $disk->download($print->output_path);
+    }
+
+    /** Stampare un'etichetta e' creare una LabelPrint: permesso `label_print.create`. */
+    protected static function canPrint(): bool
+    {
+        return Gate::allows('create', LabelPrint::class);
     }
 
     /**

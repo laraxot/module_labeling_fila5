@@ -139,4 +139,18 @@ Le etichette arrivano dai file lang per classe: `{model}.php`, `{model}_form.php
 
 - La connessione database `labeling` la crea il modulo Tenant, copiando la connessione predefinita per ogni modulo attivo. Va definita a mano in `config/{tenant}/database.php` solo se il modulo deve usare un database diverso. In ambiente di test la connessione deve comunque esistere in `config/database.php` (se si usa un solo database, basta un alias della connessione principale): `tests/TestCase.php` la usa in `$connectionsToTransact`.
 - Test: `tests/TestCase.php` usa lo sqlite condiviso di Xot e crea le tabelle mancanti con `XotModuleSchema::ensure('Labeling')`.
-- Permessi Spatie usati dalle policy: `label_template.*`, `printer.*`, `identifier.*`, `label_print.*` (`viewAny`, `view`, `create`, `update`, `delete`).
+- Permessi Spatie usati dalle policy: `label_template.*`, `printer.*`, `identifier.*` (`viewAny`, `view`, `create`, `update`, `delete`) e `label_print.*` (`viewAny`, `view`, `create`, `delete`). Li crea `LabelingPermissionSeeder` (idempotente, guard `web`, richiamato da `LabelingDatabaseSeeder`) insieme al ruolo `labeling::admin` (nome = id del pannello) con tutti i permessi del modulo. Senza permessi seminati `hasPermissionTo()` lancia `PermissionDoesNotExist` (errore 500 per chi non è super-admin).
+
+## Autorizzazione
+
+- Tutte le policy usano `DeniesUndeclaredFilamentAbilities` (Xot): `deleteAny`, `forceDeleteAny`, `restoreAny`, `reorder`, `replicate`, `attach`, `detach`, … sono negati se la policy non li dichiara.
+- Le azioni custom controllano un'abilità, non solo lo stato del record:
+
+| Azione | Abilità | Permesso |
+|---|---|---|
+| Stampa etichetta (`PrintLabelTableAction`, `PrintLabelHeaderAction`, su qualunque modello) | `create` su `LabelPrint` (anche dentro l'azione, prima di stampare) | `label_print.create` |
+| Ristampa (storico stampe) | `create` | `label_print.create` |
+| Scarica PDF | `view` | `label_print.view` |
+| Revoca identificatore | `update` | `identifier.update` |
+
+- Stampa e ristampa hanno `rateLimit` (`labeling.print_rate_limit`, default 20 al minuto per IP e azione).

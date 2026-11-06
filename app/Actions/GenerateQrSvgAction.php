@@ -44,6 +44,9 @@ class GenerateQrSvgAction
 
         Assert::string($svg);
 
-        return preg_replace('/<svg\b/', sprintf('<svg width="%1$d" height="%1$d"', $sizePx), $svg, 1) ?? $svg;
+        $sized = preg_replace('/<svg\b/', sprintf('<svg width="%1$d" height="%1$d"', $sizePx), $svg, 1);
+        Assert::string($sized);
+
+        return $sized;
     }
 }

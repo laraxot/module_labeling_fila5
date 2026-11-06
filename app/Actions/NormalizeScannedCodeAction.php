@@ -6,6 +6,7 @@ namespace Modules\Labeling\Actions;
 
 use Modules\Labeling\Datas\NormalizedScanData;
 use Spatie\QueueableAction\QueueableAction;
+use Webmozart\Assert\Assert;
 
 use function Safe\preg_match;
 use function Safe\preg_replace;
@@ -26,7 +27,8 @@ class NormalizeScannedCodeAction
 
     public function execute(string $scanned): NormalizedScanData
     {
-        $clean = preg_replace('/[\x00-\x1F\x7F]+/', '', $scanned) ?? $scanned;
+        $clean = preg_replace('/[\x00-\x1F\x7F]+/', '', $scanned);
+        Assert::string($clean);
         $clean = trim($clean);
 
         $fromUrl = false;
@@ -47,7 +49,8 @@ class NormalizeScannedCodeAction
 
     private function hex(string $value): ?string
     {
-        $compact = preg_replace('/[\s:\-]+/', '', $value) ?? $value;
+        $compact = preg_replace('/[\s:\-]+/', '', $value);
+        Assert::string($compact);
 
         if (strlen($compact) < self::MIN_HEX_LENGTH || strlen($compact) % 2 !== 0) {
             return null;

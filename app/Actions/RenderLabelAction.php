@@ -10,6 +10,7 @@ use Modules\Labeling\Enums\LabelFormatEnum;
 use Modules\Labeling\Exceptions\LabelRenderException;
 use Modules\Labeling\Models\LabelTemplate;
 use Spatie\QueueableAction\QueueableAction;
+use Webmozart\Assert\Assert;
 
 use function Safe\preg_match;
 use function Safe\preg_replace_callback;
@@ -82,9 +83,7 @@ class RenderLabelAction
             $template->content,
         );
 
-        if ($rendered === null) {
-            throw LabelRenderException::template($template->code, new \RuntimeException(preg_last_error_msg()));
-        }
+        Assert::string($rendered);
 
         return $rendered;
     }

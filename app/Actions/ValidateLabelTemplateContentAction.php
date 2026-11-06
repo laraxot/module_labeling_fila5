@@ -55,8 +55,9 @@ class ValidateLabelTemplateContentAction
         }
 
         preg_match_all(self::PLACEHOLDER_PATTERN, $content, $matches);
-        foreach ($matches[1] as $inner) {
-            $key = trim($inner);
+        $inners = is_array($matches) && is_array($matches[1] ?? null) ? $matches[1] : [];
+        foreach ($inners as $inner) {
+            $key = is_string($inner) ? trim($inner) : '';
             if (! self::isKnownKey($key, $format)) {
                 return $this->message('unknown_placeholder', ['placeholder' => '{{ '.mb_substr($key, 0, 60).' }}']);
             }

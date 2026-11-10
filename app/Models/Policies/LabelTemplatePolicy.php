@@ -7,6 +7,7 @@ namespace Modules\Labeling\Models\Policies;
 use Modules\User\Models\Policies\UserBasePolicy;
 use Modules\Xot\Contracts\UserContract;
 use Modules\Xot\Models\Policies\Concerns\DeniesUndeclaredFilamentAbilities;
+use Modules\Xot\Models\Policies\Concerns\RequiresOperationalPermissions;
 
 /**
  * Le abilita' Filament non dichiarate (eliminazione massiva, replica, riordino, ...) sono negate
@@ -15,6 +16,7 @@ use Modules\Xot\Models\Policies\Concerns\DeniesUndeclaredFilamentAbilities;
 class LabelTemplatePolicy extends UserBasePolicy
 {
     use DeniesUndeclaredFilamentAbilities;
+    use RequiresOperationalPermissions;
 
     public function viewAny(UserContract $user): bool
     {

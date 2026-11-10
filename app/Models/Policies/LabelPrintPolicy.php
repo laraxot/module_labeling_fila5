@@ -7,6 +7,7 @@ namespace Modules\Labeling\Models\Policies;
 use Modules\User\Models\Policies\UserBasePolicy;
 use Modules\Xot\Contracts\UserContract;
 use Modules\Xot\Models\Policies\Concerns\DeniesUndeclaredFilamentAbilities;
+use Modules\Xot\Models\Policies\Concerns\RequiresOperationalPermissions;
 
 /**
  * Lo storico stampe non si modifica a mano. `create` copre stampa (PrintLabelTableAction /
@@ -16,6 +17,7 @@ use Modules\Xot\Models\Policies\Concerns\DeniesUndeclaredFilamentAbilities;
 class LabelPrintPolicy extends UserBasePolicy
 {
     use DeniesUndeclaredFilamentAbilities;
+    use RequiresOperationalPermissions;
 
     public function viewAny(UserContract $user): bool
     {

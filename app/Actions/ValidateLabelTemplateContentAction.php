@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Labeling\Actions;
 
+use Illuminate\Support\Arr;
 use Modules\Labeling\Enums\LabelFormatEnum;
 use Spatie\QueueableAction\QueueableAction;
 
@@ -55,7 +56,7 @@ class ValidateLabelTemplateContentAction
         }
 
         preg_match_all(self::PLACEHOLDER_PATTERN, $content, $matches);
-        $inners = is_array($matches) && is_array($matches[1] ?? null) ? $matches[1] : [];
+        $inners = Arr::wrap(Arr::get(is_array($matches) ? $matches : [], 1, []));
         foreach ($inners as $inner) {
             $key = is_string($inner) ? trim($inner) : '';
             if (! self::isKnownKey($key, $format)) {
